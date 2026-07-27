@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-users"></i>Очередь на игру</h4>
+                <span class="badge">{{ players|length }} / {{ max_queue }}</span>
+            </div>
+            <div class="card-body">
+                {% if current_user.is_authenticated %}
+                    <div class="queue-actions">
+                        {% if is_in_queue %}
+                            <form action="{{ url_for('leave_queue') }}" method="post">
+                                {{ leave_queue_form.hidden_tag() }}
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-times-circle"></i> Выйти из очереди
+                                </button>
+                            </form>
+                        {% else %}
+                            <form action="{{ url_for('join_queue') }}" method="post">
+                                {{ queue_form.hidden_tag() }}
+                                <button type="submit" class="btn btn-success" {% if players|length >= max_queue %}disabled{% endif %}>
+                                    <i class="fas fa-plus-circle"></i> Встать в очередь
+                                </button>
+                            </form>
+                            {% if players|length >= max_queue %}
+                                <small class="text-warning d-block mt-2">Очередь заполнена</small>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <a href="{{ url_for('steam_login') }}">Войдите через Steam</a>, чтобы встать в очередь
+                    </div>
+                {% endif %}
+
+                {% if not match_started %}
+                    {% set will_play_count = 0 %}
+                    {% for player in players %}
+                        {% if player.will_play and not player.is_in_match %}
+                            {% set will_play_count = will_play_count + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if will_play_count >= match_players %}
+                        <div class="match-ready">
+                            <h5><i class="fas fa-trophy"></i>Следующий матч готов!</h5>
+                            <p>{{ match_players }} игроков уже ждут. Игра начнется автоматически</p>
+                        </div>
+                    {% endif %}
+                {% endif %}
+
+                {% if match_started %}
+                    <div class="match-started">
+                        <h5><i class="fas fa-fire"></i>Матч начался!</h5>
+                        <p>Игроки уже в игре. Следующий матч начнется после завершения текущего</p>
+                    </div>
+                {% endif %}
+
+                <div class="player-list mt-4">
+                    <h5 style="font-size:14px; color:#888; margin-bottom:12px;">Игроки в очереди:</h5>
+                    
+                    {% if players %}
+                        <div class="list-group">
+                            {% for player in players %}
+                                <div class="list-group-item">
+                                    <img src="{{ player.avatar_url }}" alt="Avatar">
+                                    <div class="player-info">
+                                        <div>
+                                            <span class="player-name">{{ player.username }}</span>
+                                            {% if player.will_play and not player.is_in_match %}
+                                                <span class="player-badge badge-will-play">Будет играть</span>
+                                            {% endif %}
+                                            {% if player.is_in_match %}
+                                                <span class="player-badge badge-in-match">В матче</span>
+                                            {% endif %}
+                                        </div>
+                                        <span class="player-time">В очереди с {{ player.joined_at.strftime('%H:%M:%S') }}</span>
+                                    </div>
+                                    <span class="badge-position">#{{ loop.index }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-queue">
+                            <i class="fas fa-hourglass-half"></i>
+                            <p>Очередь пуста. Будьте первым!</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="queue-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Всего в очереди</span>
+                        <div class="stat-value">{{ players|length }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Нужно для матча</span>
+                        <div class="stat-value">{{ match_players }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Максимум</span>
+                        <div class="stat-value">{{ max_queue }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
